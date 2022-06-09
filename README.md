@@ -1,2 +1,2 @@
-# bctad_paper_code
-Code for the BCT AD paper
+# BCT AD Paper Code
+Code for the BCT AD paper.
