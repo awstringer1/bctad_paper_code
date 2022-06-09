@@ -26,10 +26,14 @@ data(hodges)
 PLOTTEXTSIZE <- 18
 PLOTTEXTSIZESMALL <- 12
 
+## SET THESE PATHS ##
+
 globalpath <- "~/work/projects/bct-ad"
 tmbpath <- file.path(globalpath,"code/03_bct_gaussian")
 tmbpath2 <- file.path(globalpath,"code/03_bct_heavytail")
 plotpath <- file.path(globalpath,"figures")
+
+## END SET THESE PATHS ##
 
 compile(
   paste0(tmbpath,".cpp"),
