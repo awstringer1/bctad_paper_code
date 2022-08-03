@@ -24,7 +24,7 @@ for (pkg in pkgs) {
 
 options(mc.cores = parallel::detectCores())
 
-PLOTTEXTSIZE <- 18
+PLOTTEXTSIZE <- 28
 plotpath <- "~/work/projects/bct-ad/figures"
 
 # Three functions
@@ -77,7 +77,7 @@ relerrorstable <- function(true,approx) log(abs(expm1(log(approx) - log(true))),
 ## Plots of relative error ##
 paramstotry <- expand.grid(
   nu = seq(-3,3,by=.01),
-  yovermu = seq(.1,2,by=.01)
+  yovermu = seq(.02,10,by=.02)
 )
 bcout <- seriesout4 <- seriesout10 <- seriesout25 <- seriesout100 <- glout3 <- glout9 <- glout15 <- glout25 <- numeric(nrow(paramstotry))
 for (i in 1:nrow(paramstotry)) {
@@ -115,7 +115,7 @@ errormat <- within(errormat,{
   rel_error_gl25 = relerror(bc,gl25)
   
 })
-# maxima
+# Error as a function of Y/mu #
 errormat <- as_tibble(errormat)
 maxmat <- errormat %>%
   group_by(yovermu) %>%
@@ -137,6 +137,8 @@ glplot <- maxmat %>%
   scale_linetype_manual(values = c("3" = "longdash","9" = "dashed","15" = "dotdash","25" = "solid")) +
   geom_hline(yintercept = log(.Machine$double.eps,base=10),linetype = 'dotted') +
   coord_cartesian(ylim = c(-16,5)) +
+  scale_x_continuous(breaks = seq(0,10,by=2)) +
+  scale_y_continuous(breaks = seq(-15,5,by=3)) +
   theme(text = element_text(size = PLOTTEXTSIZE)) + 
   labs(x = expression(Y/mu),y = expression("log"["10"]*"(rel. error.)"),linetype = "k")
 
@@ -149,11 +151,55 @@ seriesplot <- maxmat %>%
   scale_linetype_manual(values = c("4" = "longdash","10" = "dashed","25" = "dotdash","100" = "solid")) +
   geom_hline(yintercept = log(.Machine$double.eps,base=10),linetype = 'dotted')+
   coord_cartesian(ylim = c(-16,5)) +
+  scale_x_continuous(breaks = seq(0,10,by=2)) +
+  scale_y_continuous(breaks = seq(-15,5,by=3)) +
   theme(text = element_text(size = PLOTTEXTSIZE)) + 
   labs(x = expression(Y/mu),y = expression("log"["10"]*"(rel. error.)"),linetype = "m")
 
 ggsave(glplot,file = file.path(plotpath,"glplot.pdf"),width=7,height=7)
 ggsave(seriesplot,file = file.path(plotpath,"seriesplot.pdf"),width=7,height=7)
+
+# Error as a function of nu #
+numat <- errormat %>%
+  filter(yovermu==10,abs(nu)<=1) %>%
+  pivot_longer(contains("rel_error"),names_to = "type",values_to = "log_rel_error") %>%
+  mutate(
+    type = str_extract(type,"[a-z]+[0-9]+"),
+    method = str_extract(type,"[a-z]+"),
+    tuning = str_extract(type,"[0-9]+")
+  ) %>%
+  dplyr::select(nu,type,method,tuning,log_rel_error)
+
+glplot_nu <- numat %>%
+  filter(method == 'gl') %>%
+  ggplot(aes(x = nu,y = log_rel_error)) + 
+  theme_bw() + 
+  geom_line(aes(linetype = tuning)) +
+  scale_linetype_manual(values = c("3" = "longdash","9" = "dashed","15" = "dotdash","25" = "solid")) +
+  geom_hline(yintercept = log(.Machine$double.eps,base=10),linetype = 'dotted') +
+  coord_cartesian(ylim = c(-16,5)) +
+  scale_x_continuous(breaks = seq(-1,1,by=.5)) +
+  scale_y_continuous(breaks = seq(-15,5,by=3)) +
+  theme(text = element_text(size = PLOTTEXTSIZE)) + 
+  labs(x = expression(nu),y = expression("log"["10"]*"(rel. error.)"),linetype = "k")
+glplot_nu
+
+seriesplot_nu <- numat %>%
+  filter(method == 'series') %>%
+  ggplot(aes(x = nu,y = log_rel_error)) + 
+  theme_bw() + 
+  geom_line(aes(linetype = tuning)) +
+  scale_linetype_manual(values = c("4" = "longdash","10" = "dashed","25" = "dotdash","100" = "solid")) +
+  geom_hline(yintercept = log(.Machine$double.eps,base=10),linetype = 'dotted') +
+  coord_cartesian(ylim = c(-16,5)) +
+  scale_x_continuous(breaks = seq(-1,1,by=.5)) +
+  scale_y_continuous(breaks = seq(-15,5,by=3)) +
+  theme(text = element_text(size = PLOTTEXTSIZE)) + 
+  labs(x = expression(nu),y = expression("log"["10"]*"(rel. error.)"),linetype = "k")
+seriesplot_nu
+
+ggsave(glplot_nu,file = file.path(plotpath,"glplot_nu.pdf"),width=7,height=7)
+ggsave(seriesplot_nu,file = file.path(plotpath,"seriesplot_nu.pdf"),width=7,height=7)
 
 ## Computational times ##
 get_relative_times <- function(nu,yovermu,times = 100) {
