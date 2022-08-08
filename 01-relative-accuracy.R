@@ -202,13 +202,25 @@ ggsave(glplot_nu,file = file.path(plotpath,"glplot_nu.pdf"),width=7,height=7)
 ggsave(seriesplot_nu,file = file.path(plotpath,"seriesplot_nu.pdf"),width=7,height=7)
 
 ## Computational times ##
+
+# Re-write the functions for as fair a comparison as possible
+# No longer vectorize over parameters; only need to evaluate at one value at a time
+bc_timing <- function(nu,yovermu) {
+  if (nu==0) return(log(yovermu))
+  ((yovermu)^nu - 1)/nu
+}
+bc_series_timing <- function(nu,yovermu,M) {
+  lym <- log(yovermu)
+  lym + sum(nu^(1:(M-1)) * (lym)^(2:M) / cumprod(2:M))
+}
+
 get_relative_times <- function(nu,yovermu,times = 100) {
   times <- microbenchmark::microbenchmark(
-    bc(nu,yovermu),
-    bc_series(nu,4,yovermu),
-    bc_series(nu,10,yovermu),
-    bc_series(nu,25,yovermu),
-    bc_series(nu,100,yovermu),
+    bc_timing(nu,yovermu),
+    bc_series_timing(nu,yovermu,4),
+    bc_series_timing(nu,yovermu,10),
+    bc_series_timing(nu,yovermu,25),
+    bc_series_timing(nu,yovermu,100),
     bc_gl3(nu,yovermu),
     bc_gl9(nu,yovermu),
     bc_gl15(nu,yovermu),
@@ -220,8 +232,8 @@ get_relative_times <- function(nu,yovermu,times = 100) {
       method = str_extract(expr,"bc_*[a-z]*"),
       tuning = str_extract(expr,"[0-9]+")
     )
-  times_bc <- times %>% filter(method == 'bc')
-  times_approx <- times %>% filter(method != 'bc')
+  times_bc <- times %>% filter(method == 'bc_timing')
+  times_approx <- times %>% filter(method != 'bc_timing')
   bc_median <- median(times_bc$time)
   timesummary <- times_approx %>%
     group_by(method,tuning) %>%
@@ -285,15 +297,20 @@ timeframe_profile_yovermu %>%
   geom_line(aes(linetype = type))
 
 # No clear pattern or difference.
-# Report results for yovermu = 1.5, nu = 1, based on 1MM runs
-final_times <- get_relative_times(1,1.5,1e06)
+# Report results for yovermu = 1.5, nu = 1.7, based on 1MM runs
+final_times <- get_relative_times(1.7,1.5,1e06)
 # Relative to each other
 final_times_gl <- final_times[1:4, ] %>% mutate(tuning = as.numeric(tuning)) %>% arrange(tuning)
 final_times_series <- final_times[5:8, ] %>% mutate(tuning = as.numeric(tuning)) %>% arrange(tuning)
 
-100 * final_times_series$mediantime / final_times_gl$mediantime
+round(100 * final_times_series$mediantime / final_times_gl$mediantime)
 
+# Save figures as .eps for journal
 
+ggsave(glplot,file = file.path(plotpath,"glplot.tiff"),width=7,height=7,dpi=300)
+ggsave(seriesplot,file = file.path(plotpath,"seriesplot.tiff"),width=7,height=7,dpi=300)
+ggsave(glplot_nu,file = file.path(plotpath,"glplot_nu.tiff"),width=7,height=7,dpi=300)
+ggsave(seriesplot_nu,file = file.path(plotpath,"seriesplot_nu.tiff"),width=7,height=7,dpi=300)
 
 
 

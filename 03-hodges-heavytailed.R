@@ -168,6 +168,7 @@ median_plot_heavy <- plotdat_medians_heavy %>%
   theme(text = element_text(size = PLOTTEXTSIZESMALL),axis.text.x = element_text(angle = 90))
 
 ggsave(file.path(plotpath,"medians.pdf"),plot = median_plot_heavy,width = 7,height = 3.5)
+ggsave(file.path(plotpath,"medians.tiff"),plot = median_plot_heavy,width = 7,height = 3.5,dpi=300)
 
 # errors
 mse_gaussian <- with(plotdat_medians_heavy,mean((obs-pred_gaussian)^2))
